@@ -1,11 +1,13 @@
 # define a convenient function to load all the data and create a Seurat object
 
-create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat = NULL) {
+create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat = NULL,project='SeuratProject') {
   # Define cells
   print( 'If you already have a list of cell barcodes to use you can skip this step')
   total_counts <- CountFragments(paste0(fragpath,'fragments.tsv.gz'))
   cutoff <- cutoff.value # Change this number depending on your dataset!
   barcodes <- total_counts[total_counts$frequency_count > cutoff, ]$CB
+  
+  total_counts$CB <- paste(project,total_counts$CB,sep = '_')
   
   # Create a fragment object
   frags <- CreateFragmentObject(path = paste0(fragpath,'fragments.tsv.gz'), cells = barcodes)
@@ -29,11 +31,13 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat 
   
   counts <- FeatureMatrix(fragments = frags, features = peaks, cells = barcodes)
   
+  # make unique barcodes
+  colnames(counts) <- paste(project,colnames(counts),sep = '_')
   
   chrom_assay <- CreateChromatinAssay(
     counts = counts,
     sep = c(":", "-"),
-    fragments = paste0(fragpath,'fragments.tsv.gz'),
+    fragments = frags,#paste0(fragpath,'fragments.tsv.gz')
     # min.cells = 10,
     # min.features = 200,
     # genome = 'hg38'
@@ -74,6 +78,8 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat 
   seu <- RunTFIDF(seu)
   
   seu <- RunSVD(seu)
+  
+  seu$orig.ident <- project
   
   print(seu[['peaks']])
   
