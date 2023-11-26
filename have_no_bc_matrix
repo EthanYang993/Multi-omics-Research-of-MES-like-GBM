@@ -1,0 +1,71 @@
+# define a convenient function to load all the data and create a Seurat object
+
+create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value) {
+  # Define cells
+  print( 'If you already have a list of cell barcodes to use you can skip this step')
+  total_counts <- CountFragments(paste0(fragpath,'fragments.tsv.gz'))
+  cutoff <- cutoff.value # Change this number depending on your dataset!
+  barcodes <- total_counts[total_counts$frequency_count > cutoff, ]$CB
+  
+  # Create a fragment object
+  frags <- CreateFragmentObject(path = paste0(fragpath,'fragments.tsv.gz'), cells = barcodes)
+  # gzip -d <fragment.tsv.gz>
+  # bgzip <fragment.tsv>
+  # tabix -p bed <fragment.tsv.gz>
+  # First call peaks on the dataset
+  # If you already have a set of peaks you can skip this step
+  peaks <- CallPeaks(frags)
+  
+  print(head(peaks))
+  # Quantify fragments in each peak
+  counts <- FeatureMatrix(fragments = frags, features = peaks, cells = barcodes)
+  
+  
+  chrom_assay <- CreateChromatinAssay(
+    counts = counts,
+    sep = c(":", "-"),
+    fragments = paste0(fragpath,'fragments.tsv.gz'),
+    # min.cells = 10,
+    # min.features = 200,
+    # genome = 'hg38'
+  )
+  
+  seu <- CreateSeuratObject(
+    counts = chrom_assay,
+    assay = "peaks"
+  )
+  # prepare for FRiP
+  seu <- AddMetaData(seu,column_to_rownames(total_counts,var = 'CB'))
+  
+  seu <- FRiP(
+    object = seu,
+    assay = 'peaks',
+    total.fragments = 'reads_count'
+  )
+  
+  # extract gene annotations from EnsDb
+  annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+  
+  # change to UCSC style since the data was mapped to hg19
+  seqlevels(annotations) <- paste0('chr', seqlevels(annotations))
+  seqlevelsStyle(annotations) <- 'UCSC'
+  genome(annotations) <- "hg38"
+  
+  # add the gene information to the object
+  Annotation(seu) <- annotations
+  
+  # filter
+  seu <- subset(seu, nCount_peaks > nCou.peaks.min & nCount_peaks < nCou.peaks.max)
+  
+  # compute LSI
+  seu <- FindTopFeatures(seu)
+  
+  seu <- RunTFIDF(seu)
+  
+  seu <- RunSVD(seu)
+  
+  print(seu[['peaks']])
+  
+  return(seu)
+}
+
