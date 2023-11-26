@@ -1,6 +1,6 @@
 # define a convenient function to load all the data and create a Seurat object
 
-create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat) {
+create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat = NULL) {
   # Define cells
   print( 'If you already have a list of cell barcodes to use you can skip this step')
   total_counts <- CountFragments(paste0(fragpath,'fragments.tsv.gz'))
@@ -18,7 +18,7 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat)
   if (is.null(feat)) {
     peaks <- CallPeaks(frags)
   }
-else
+  else
   {
       peaks <- granges(feat)
     }
@@ -43,7 +43,9 @@ else
     counts = chrom_assay,
     assay = "peaks"
   )
+  
   # prepare for FRiP
+  
   seu <- AddMetaData(seu,column_to_rownames(total_counts,var = 'CB'))
   
   seu <- FRiP(
@@ -55,7 +57,7 @@ else
   # extract gene annotations from EnsDb
   annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
   
-  # change to UCSC style since the data was mapped to hg19
+  # change to UCSC style since the data was mapped to hg38
   seqlevels(annotations) <- paste0('chr', seqlevels(annotations))
   seqlevelsStyle(annotations) <- 'UCSC'
   genome(annotations) <- "hg38"
@@ -76,5 +78,6 @@ else
   print(seu[['peaks']])
   
   return(seu)
+  
 }
 
