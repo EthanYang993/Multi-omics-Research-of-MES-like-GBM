@@ -1,6 +1,6 @@
 # define a convenient function to load all the data and create a Seurat object
 
-create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value) {
+create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat) {
   # Define cells
   print( 'If you already have a list of cell barcodes to use you can skip this step')
   total_counts <- CountFragments(paste0(fragpath,'fragments.tsv.gz'))
@@ -14,10 +14,19 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value) {
   # tabix -p bed <fragment.tsv.gz>
   # First call peaks on the dataset
   # If you already have a set of peaks you can skip this step
-  peaks <- CallPeaks(frags)
+  
+  if (is.null(feat)) {
+    peaks <- CallPeaks(frags)
+  }
+else
+  {
+      peaks <- granges(feat)
+    }
   
   print(head(peaks))
+  
   # Quantify fragments in each peak
+  
   counts <- FeatureMatrix(fragments = frags, features = peaks, cells = barcodes)
   
   
