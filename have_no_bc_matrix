@@ -7,8 +7,6 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat 
   cutoff <- cutoff.value # Change this number depending on your dataset!
   barcodes <- total_counts[total_counts$frequency_count > cutoff, ]$CB
   
-  total_counts$CB <- paste(project,total_counts$CB,sep = '_')
-  
   # Create a fragment object
   frags <- CreateFragmentObject(path = paste0(fragpath,'fragments.tsv.gz'), cells = barcodes)
   # gzip -d <fragment.tsv.gz>
@@ -32,7 +30,6 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat 
   counts <- FeatureMatrix(fragments = frags, features = peaks, cells = barcodes)
   
   # make unique barcodes
-  colnames(counts) <- paste(project,colnames(counts),sep = '_')
   
   chrom_assay <- CreateChromatinAssay(
     counts = counts,
@@ -47,6 +44,9 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat 
     counts = chrom_assay,
     assay = "peaks"
   )
+  
+  # compute nucleosome signal score per cell
+  seu<- NucleosomeSignal(seu)
   
   # prepare for FRiP
   
@@ -80,6 +80,9 @@ create_obj <- function(fragpath,nCou.peaks.max,nCou.peaks.min,cutoff.value,feat 
   seu <- RunSVD(seu)
   
   seu$orig.ident <- project
+  
+  #make unique cellname when integration
+  seu<- RenameCells(seu,add.cell.id = project)
   
   print(seu[['peaks']])
   
