@@ -7,7 +7,7 @@ grn_output=output/s1_adj.tsv
 ctx_output=output/s2_reg.tsv
 aucell_output=output/s3_aucell.loom
 
-## 创建文件夹
+## create output folder
 mkdir output
 
 ## reference
